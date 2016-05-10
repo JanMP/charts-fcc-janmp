@@ -1,48 +1,63 @@
 { Mongo } = require "meteor/mongo"
-{ Class } = require "meteor/jagi:astronomy"
-{ astroView }  = require "/imports/astroView.coffee"
 request = require "/node_modules/request"
 
+symbolDef =
+  type : String
+  min : 1
+  max : 4
+
 Charts = new Mongo.Collection "charts"
-Chart = astroView
-  name : "Chart"
-  collection : Charts
-  fields :
-    symbol : String
-    name : String
-  methods :
-    download : ->
-      getData.call symbol : @symbol
+Charts.schema = new SimpleSchema
+  symbol : symbolDef
+  name :
+    type : String
+Charts.attachSchema Charts.schema
 
 Points = new Mongo.Collection "points"
-Point = astroView
-  name : "Point"
-  collection : Points
-  fields :
-    chartId : String
-    date : String
-    open :
-      type : Number
-      optional : true
-    high :
-      type : Number
-      optional : true
-    low :
-      type : Number
-      optional : true
-    close :
-      type : Number
-      optional : true
+Points.schema = new SimpleSchema
+  symbol : symbolDef
+  date :
+    type : Date
+  open :
+    type : Number
+    optional : true
+    decimal : true
+  high :
+    type : Number
+    optional : true
+    decimal : true
+  low :
+    type : Number
+    optional : true
+    decimal : true
+  close :
+    type : Number
+    optional : true
+    decimal : true
+Points.attachSchema Points.schema
 
-exports.getData = getData = new ValidatedMethod
+exports.removeChart = new ValidatedMethod
+  name : "charts.removeChart"
+  validate :
+    new SimpleSchema
+      id :
+        type : String
+    .validator()
+  run : ({ id }) ->
+    Charts.remove id
+
+exports.getData = new ValidatedMethod
   name : "charts.getData"
-  validate : null
+  validate :
+    new SimpleSchema
+      symbol : symbolDef
+    .validator()
   run : ({ symbol }) ->
     if Meteor.isServer
       apiKey = Meteor.settings.apiKey
-      chart = Chart.findOne(symbol : symbol) or new Chart(symbol : symbol)
+      chart = Charts.findOne(symbol : symbol) or symbol : symbol
       query = "https://www.quandl.com/api/v3/datasets\
-      /WIKI/#{symbol}.json?api_key=#{apiKey}"
+      /WIKI/#{symbol}.json?api_key=#{apiKey}&rows=365"
       request query, Meteor.bindEnvironment (err, resp, body) ->
         json = JSON.parse body
         if json?.quandl_error?
@@ -53,27 +68,21 @@ exports.getData = getData = new ValidatedMethod
           "there's no dataset in the response"
         api = json.dataset
         chart.name = api.name
-        chart.save  (err, chartId) ->
-          ind = (str) -> api.column_names.indexOf str
-          indices =
-            date : ind "Date"
-            open : ind "Open"
-            high : ind "High"
-            low : ind "Low"
-            close : ind "Close"
-          console.log indices
+        Charts.upsert chart, $set : chart, (err, chartId) ->
+          ind = {}
+          keys = ["date", "open", "high", "low", "close"]
+          for key in keys
+            ind[key] = api.column_names
+              .map (e) ->
+                e.toLowerCase()
+              .indexOf key
           for row in api.data
-            date = row[indices.date]
-            point = Point.findOne
-              chartId : chartId
-              date : date
-            point ?= new Point
-              chartId : chart._id
-              date : date
-            for key, value of indices
-              point[key] = row[value]
-            point.save()
+            selector =
+              symbol : chart.symbol
+              date : new Date row[ind.date]
+            point = Points.findOne(selector) or selector
+            for key in keys[1..]
+              point[key] = row[ind[key]]
+            Points.upsert point, $set : point
 
-
-exports.Chart = Chart
 exports.Charts = Charts

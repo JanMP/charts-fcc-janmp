@@ -1,18 +1,15 @@
 require "./list.jade"
-
-{ Chart, Charts } = require "/imports/collections/charts.coffee"
-{ Class } = require "meteor/jagi:astronomy"
+{ Charts, getData, removeChart } = require "/imports/collections/charts.coffee"
 
 Template.list.viewmodel
   newChartName : ""
-  saveNewChart : ->
-    chart = new Chart
-      symbol : @newChartName()[0..3].trim().toUpperCase()
-    chart.download()
-    @newChartName.reset()
   items : ->
     Charts.find()
+  saveNewChart : ->
+    getData.call
+      symbol : @newChartName()[0..3].trim().toUpperCase()
+    @newChartName.reset()
 
 Template.listItem.viewmodel
-  mixin : "Chart"
-  logQuery : -> @Chart().download()
+  removeChart : ->
+    removeChart.call id : @_id()

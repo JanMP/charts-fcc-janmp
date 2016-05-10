@@ -11,10 +11,8 @@ template(name="list")
 template(name="listItem")
   .item
     .right.floated.content
-      i.cloud.download.icon($b="click:logQuery")
-      i.delete.icon($b="click:Chart.remove")
+      //i.cloud.download.icon($b="click:logChart")
+      i.delete.icon($b="click:removeChart")
     .content
       .header #{symbol}
       .description #{name}
-      .ui.input
-        input($b="value : name, enter:Chart.save" type="text")
