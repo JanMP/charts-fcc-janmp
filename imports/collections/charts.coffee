@@ -11,30 +11,16 @@ Charts.schema = new SimpleSchema
   symbol : symbolDef
   name :
     type : String
-Charts.attachSchema Charts.schema
+  dataset :
+    type : Object
+    blackbox : true
 
-Points = new Mongo.Collection "points"
-Points.schema = new SimpleSchema
-  symbol : symbolDef
-  date :
-    type : Date
-  open :
-    type : Number
-    optional : true
-    decimal : true
-  high :
-    type : Number
-    optional : true
-    decimal : true
-  low :
-    type : Number
-    optional : true
-    decimal : true
-  close :
-    type : Number
-    optional : true
-    decimal : true
-Points.attachSchema Points.schema
+Charts.attachSchema Charts.schema
+exports.Charts = Charts
+
+if Meteor.isServer
+  Meteor.publish "charts.charts", ->
+    Charts.find()
 
 exports.removeChart = new ValidatedMethod
   name : "charts.removeChart"
@@ -68,21 +54,7 @@ exports.getData = new ValidatedMethod
           "there's no dataset in the response"
         api = json.dataset
         chart.name = api.name
-        Charts.upsert chart, $set : chart, (err, chartId) ->
-          ind = {}
-          keys = ["date", "open", "high", "low", "close"]
-          for key in keys
-            ind[key] = api.column_names
-              .map (e) ->
-                e.toLowerCase()
-              .indexOf key
-          for row in api.data
-            selector =
-              symbol : chart.symbol
-              date : new Date row[ind.date]
-            point = Points.findOne(selector) or selector
-            for key in keys[1..]
-              point[key] = row[ind[key]]
-            Points.upsert point, $set : point
-
-exports.Charts = Charts
+        chart.dataset =
+          keys : api.column_names
+          rows : api.data
+        Charts.upsert chart, $set : chart

@@ -5,8 +5,10 @@
     "start": "meteor run"
   },
   "dependencies": {
+    "c3": "^0.4.11",
     "lodash": "^4.11.2",
     "meteor-node-stubs": "~0.2.0",
+    "moment": "^2.13.0",
     "request": "^2.72.0"
   }
 }

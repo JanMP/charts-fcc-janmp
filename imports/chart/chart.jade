@@ -1,0 +1,10 @@
+template(name="chart")
+  .ui.clearing.right.aligned.container.segment
+    .ui.selection.dropdown#dropdown
+      select(name="key" type="hidden" $b="value : key, options : keyOptions")
+      span.text #{key}
+      i.dropdown.icon
+      .menu
+        each option in keyOptions
+          .item(data_value="#{option}") #{option}
+    #chart

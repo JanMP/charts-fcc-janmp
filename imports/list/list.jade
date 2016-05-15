@@ -1,7 +1,7 @@
 template(name="list")
   .ui.container.segment
     .ui.fluid.input
-      input(type="text" $b="value : newChartName, enter : saveNewChart")
+      input(type="text" $b="value : newChartName, enter : saveNewChart" placeholder="enter stock symbol to add or refresh stock")
       if newChartName.invalid
         p WRONG
     .ui.divided.list
